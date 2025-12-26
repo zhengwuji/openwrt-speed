@@ -1,0 +1,146 @@
+<div class="cbi-section">
+	<h3>操作</h3>
+	<div class="cbi-section-node">
+		<input type="button" class="cbi-button cbi-button-apply" value="测试连接" onclick="testProxy()" />
+		<span id="test-result" style="margin-left: 10px; font-weight: bold;"></span>
+		<br/><br/>
+		<input type="button" class="cbi-button cbi-button-save" value="开始升级" onclick="startUpgrade()" />
+	</div>
+	
+	<h3>升级日志</h3>
+	<textarea id="upgrade-log" style="width: 100%; height: 300px; font-family: monospace; margin-top: 10px;" readonly></textarea>
+</div>
+
+<div class="cbi-section">
+    <h3>插件说明与教程</h3>
+    <div class="cbi-section-node">
+        <div class="cbi-value">
+            <div class="cbi-value-field" style="width: 100%; color: #666; line-height: 1.8; font-size: 14px;">
+                
+                <div style="background-color: #e8f5e9; padding: 15px; border-left: 5px solid #4caf50; margin-bottom: 20px; border-radius: 4px;">
+                    <h4 style="margin-top: 0; color: #2e7d32;">💡 这个插件是做什么的？</h4>
+                    <p>简单来说，它能<strong>让 OpenWrt "借用" 您电脑的梯子来下载软件</strong>。</p>
+                    <p><strong>场景举例：</strong></p>
+                    <ul style="list-style-type: disc; margin-left: 20px;">
+                        <li><strong>情况 A</strong>：您想安装一个插件，但点击安装后，进度条卡在 0% 不动，或者提示下载失败。这是因为 OpenWrt 连不上国外的软件源。</li>
+                        <li><strong>情况 B</strong>：系统更新下载速度只有几 KB/s，升级一个软件要半小时。</li>
+                    </ul>
+                    <p><strong>使用本插件后</strong>：只要您的电脑能科学上网，OpenWrt 就能通过您的电脑高速下载，几秒钟搞定升级！</p>
+                </div>
+
+                <h4 style="margin-bottom: 10px;">📖 使用教程</h4>
+                <p><strong>1. 电脑端准备：</strong><br/>
+                打开您的代理软件（如 V2RayN, Clash），找到 <strong>"允许局域网连接" (Allow LAN)</strong> 的开关并开启。</p>
+                
+                <p><strong>2. 插件配置：</strong><br/>
+                - <strong>启用代理</strong>：选择 "启用"。<br/>
+                - <strong>代理服务器IP</strong>：点开下拉框，选择您电脑的 IP（通常是 192.168.x.x 或 10.10.x.x）。<br/>
+                - <strong>代理端口</strong>：填写代理软件的局域网端口（V2RayN 默认 10808，Clash 默认 7890）。<br/>
+                - <strong>代理类型</strong>：推荐选择 SOCKS5。</p>
+                
+                <p><strong>3. 开始使用：</strong><br/>
+                点击 <strong>"测试连接"</strong>，看到绿色的 "成功" 后，点击 <strong>"保存并应用"</strong>，最后点击 <strong>"开始升级"</strong>。</p>
+                
+                <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-left: 4px solid #ffc107; color: #856404;">
+                <strong>⚠️ 常见问题：</strong><br/>
+                如果测试失败，通常是因为电脑防火墙拦截了，或者代理软件没开启"允许局域网"。请尝试暂时关闭电脑防火墙。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+	function getValueBySuffix(suffix) {
+		var elements = document.querySelectorAll('[id$="' + suffix + '"]');
+		for (var i = 0; i < elements.length; i++) {
+			var el = elements[i];
+			if (el.value && el.value.trim() !== "") {
+				return el.value;
+			}
+		}
+		elements = document.querySelectorAll('[name$="' + suffix + '"]');
+		for (var i = 0; i < elements.length; i++) {
+			var el = elements[i];
+			if (el.value && el.value.trim() !== "") {
+				return el.value;
+			}
+		}
+		return "";
+	}
+
+	function testProxy() {
+		var resultSpan = document.getElementById('test-result');
+		if (!resultSpan) return;
+		
+		try {
+			resultSpan.innerHTML = "准备测试...";
+			resultSpan.style.color = "black";
+			
+			var ip = getValueBySuffix("proxy_ip");
+			var port = getValueBySuffix("proxy_port");
+			var type = getValueBySuffix("proxy_type") || "http";
+			
+			console.log("Found: IP=" + ip + ", Port=" + port + ", Type=" + type);
+			
+			if(!ip || !port) {
+				resultSpan.innerHTML = "错误: 无法获取IP或端口 (IP='" + ip + "', Port='" + port + "')";
+				resultSpan.style.color = "red";
+				return;
+			}
+			
+			var btn = document.querySelector('input[value="测试连接"]');
+			var originalVal = btn.value;
+			btn.value = "测试中...";
+			btn.disabled = true;
+			resultSpan.innerHTML = "正在连接 " + ip + ":" + port + " (" + type + ")...";
+			
+			var ts = new Date().getTime();
+			
+			XHR.get('<%=luci.dispatcher.build_url("admin", "system", "proxy-upgrade", "test")%>', 
+				{ip: ip, port: port, type: type, _: ts}, 
+				function(x, data) {
+					btn.value = originalVal;
+					btn.disabled = false;
+					
+					if (x.status == 200) {
+						resultSpan.innerHTML = x.responseText;
+						if (x.responseText && x.responseText.indexOf("成功") !== -1) {
+							resultSpan.style.color = "green";
+						} else {
+							resultSpan.style.color = "red";
+						}
+					} else {
+						resultSpan.innerHTML = "请求错误: " + x.status;
+						resultSpan.style.color = "red";
+					}
+				}
+			);
+		} catch (e) {
+			resultSpan.innerHTML = "JS错误: " + e.message;
+			resultSpan.style.color = "red";
+		}
+	}
+	
+	function startUpgrade() {
+		if(!confirm("确定要开始升级吗？这可能需要几分钟。")) return;
+		
+		document.getElementById('upgrade-log').value = "正在启动升级...\n";
+		var btn = document.querySelector('input[value="开始升级"]');
+		btn.disabled = true;
+		
+		XHR.get('<%=luci.dispatcher.build_url("admin", "system", "proxy-upgrade", "run")%>', null, function(x, data) {
+			pollLog();
+		});
+	}
+	
+	function pollLog() {
+		XHR.poll(2, '<%=luci.dispatcher.build_url("admin", "system", "proxy-upgrade", "log")%>', null, function(x, data) {
+			var log = document.getElementById('upgrade-log');
+			if(log) {
+				log.value = x.responseText;
+				log.scrollTop = log.scrollHeight;
+			}
+		});
+	}
+</script>

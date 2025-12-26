@@ -1,0 +1,5 @@
+config proxy 'settings'
+	option enabled '0'
+	option proxy_ip ''
+	option proxy_port ''
+	option proxy_type 'http'

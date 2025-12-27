@@ -39,6 +39,10 @@ o:value("http", "HTTP")
 o:value("socks5", "SOCKS5")
 o.default = "http"
 
+o = s:option(Value, "timeout", translate("连接超时(秒)"))
+o.datatype = "uinteger"
+o.default = "5"
+
 t = s:option(DummyValue, "_buttons")
 t.template = "proxy-upgrade/status"
 

@@ -80,8 +80,9 @@
 			var ip = getValueBySuffix("proxy_ip");
 			var port = getValueBySuffix("proxy_port");
 			var type = getValueBySuffix("proxy_type") || "http";
+			var timeout = getValueBySuffix("timeout") || "5";
 			
-			console.log("Found: IP=" + ip + ", Port=" + port + ", Type=" + type);
+			console.log("Found: IP=" + ip + ", Port=" + port + ", Type=" + type + ", Timeout=" + timeout);
 			
 			if(!ip || !port) {
 				resultSpan.innerHTML = "错误: 无法获取IP或端口 (IP='" + ip + "', Port='" + port + "')";
@@ -98,7 +99,7 @@
 			var ts = new Date().getTime();
 			
 			XHR.get('<%=luci.dispatcher.build_url("admin", "system", "proxy-upgrade", "test")%>', 
-				{ip: ip, port: port, type: type, _: ts}, 
+				{ip: ip, port: port, type: type, timeout: timeout, _: ts}, 
 				function(x, data) {
 					btn.value = originalVal;
 					btn.disabled = false;

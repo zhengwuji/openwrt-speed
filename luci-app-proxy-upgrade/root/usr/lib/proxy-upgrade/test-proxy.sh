@@ -3,6 +3,11 @@
 IP=$1
 PORT=$2
 TYPE=$3
+TIMEOUT=$4
+
+if [ -z "$TIMEOUT" ]; then
+    TIMEOUT=5
+fi
 
 if [ -z "$IP" ] || [ -z "$PORT" ]; then
 	echo "错误: IP或端口为空"
@@ -19,7 +24,7 @@ export https_proxy="$PROXY_URL"
 
 # echo "Testing connection via $PROXY_URL..." >> /tmp/proxy-upgrade.log
 
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 https://www.google.com)
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout $TIMEOUT https://www.google.com)
 
 if [ "$HTTP_CODE" = "200" ]; then
 	echo "连接成功 (HTTP 200)"

@@ -11,9 +11,10 @@ function action_test()
 	local ip = luci.http.formvalue("ip")
 	local port = luci.http.formvalue("port")
 	local type = luci.http.formvalue("type") or "http"
+	local timeout = luci.http.formvalue("timeout") or "5"
 	
 	luci.http.prepare_content("text/plain")
-	local cmd = "/usr/lib/proxy-upgrade/test-proxy.sh " .. ip .. " " .. port .. " " .. type
+	local cmd = "/usr/lib/proxy-upgrade/test-proxy.sh " .. ip .. " " .. port .. " " .. type .. " " .. timeout
 	local f = io.popen(cmd)
 	local output = f:read("*all")
 	f:close()

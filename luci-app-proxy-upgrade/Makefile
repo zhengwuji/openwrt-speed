@@ -38,6 +38,7 @@ define Package/luci-app-proxy-upgrade/install
 	$(INSTALL_DIR) $(1)/usr/lib/proxy-upgrade
 	$(INSTALL_BIN) ./root/usr/lib/proxy-upgrade/test-proxy.sh $(1)/usr/lib/proxy-upgrade/
 	$(INSTALL_BIN) ./root/usr/lib/proxy-upgrade/upgrade.sh $(1)/usr/lib/proxy-upgrade/
+	$(INSTALL_BIN) ./root/usr/lib/proxy-upgrade/set-global-proxy.sh $(1)/usr/lib/proxy-upgrade/
 	
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) ./root/etc/config/proxy-upgrade $(1)/etc/config/

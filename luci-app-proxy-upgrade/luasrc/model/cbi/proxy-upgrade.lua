@@ -39,14 +39,49 @@ if f then
     f:close()
 end
 
+-- Try to get hostnames from /etc/hosts
+f = io.open("/etc/hosts", "r")
+if f then
+    for line in f:lines() do
+        local ip, hostname = line:match("^(%S+)%s+(%S+)")
+        if ip and hostname and neighbors[ip] and not neighbors[ip].name then
+            neighbors[ip].name = hostname
+        end
+    end
+    f:close()
+end
+
 -- Display all devices from ARP table
 for ip, info in pairs(neighbors) do
     local label = info.ip
+    local display_name = ""
+    
+    -- Priority: DHCP name > hostname from /etc/hosts > Device type
     if info.name and info.name ~= "*" then
-        label = label .. " (" .. info.name .. ")"
+        display_name = info.name
     else
-        label = label .. " (" .. info.mac .. ")"
+        -- Identify device type based on MAC vendor prefix
+        local mac_prefix = info.mac:sub(1, 8):upper()
+        local vendors = {
+            ["8C:0E:60"] = "ZTE设备",
+            ["44:59:43"] = "网络设备",
+            ["3A:83:74"] = "移动设备",
+            ["0C:D8:6C"] = "网络设备",
+            ["B4:6E:10"] = "网络设备",
+            ["80:AE:54"] = "路由器",
+            ["22:1D:BE"] = "虚拟设备"
+        }
+        local vendor = vendors[mac_prefix]
+        
+        if vendor then
+            display_name = vendor
+        else
+            -- Show "未知设备" with last 4 chars of MAC
+            display_name = "未知设备 (" .. info.mac:sub(-8) .. ")"
+        end
     end
+    
+    label = label .. " - " .. display_name
     o:value(info.ip, label)
 end
 

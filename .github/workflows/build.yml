@@ -67,12 +67,71 @@ jobs:
             sdk/.config
           retention-days: 5
 
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          # 获取最新的提交信息
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          COMMIT_HASH=$(git log -1 --pretty=%h)
+          COMMIT_AUTHOR=$(git log -1 --pretty=%an)
+          COMMIT_DATE=$(git log -1 --pretty=%ad --date=format:'%Y-%m-%d %H:%M:%S')
+          
+          # 生成Release Notes
+          cat > release_notes.md << 'EOF'
+          ## 📦 luci-app-proxy-upgrade v1.0-${{ github.run_number }}
+          
+          ### 📝 更新内容
+          
+          **提交信息**: ${COMMIT_MSG}
+          
+          **提交哈希**: ${COMMIT_HASH}  
+          **提交作者**: ${COMMIT_AUTHOR}  
+          **提交时间**: ${COMMIT_DATE}
+          
+          ### ✨ 功能特点
+          - 🎨 可视化界面配置代理设置
+          - 🔍 智能发现局域网设备
+          - 🌉 完美支持桥接模式路由器
+          - 🔄 正确处理多IP设备
+          - ⚡ 一键测试代理连接
+          - 🌐 全局代理支持
+          - 📜 实时升级日志显示
+          
+          ### 📥 安装方法
+          ```bash
+          # 下载IPK文件到OpenWrt
+          wget https://github.com/zhengwuji/openwrt-speed/releases/download/v1.0-${{ github.run_number }}/luci-app-proxy-upgrade_1.0-1_all.ipk
+          
+          # 安装
+          opkg update
+          opkg install luci-app-proxy-upgrade_1.0-1_all.ipk
+          ```
+          
+          ### 🔧 使用说明
+          1. 登录OpenWrt管理后台
+          2. 进入 **系统** → **代理升级**
+          3. 启用代理并选择局域网内的代理服务器
+          4. 测试连接后保存并开始升级
+          
+          ### 📚 详细文档
+          请查看 [README.md](https://github.com/zhengwuji/openwrt-speed/blob/main/README.md)
+          
+          ---
+          **构建编号**: #${{ github.run_number }}  
+          **构建时间**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          EOF
+          
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: github.ref == 'refs/heads/main' && success()
         with:
           tag_name: v1.0-${{ github.run_number }}
           name: Release v1.0-${{ github.run_number }}
+          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           draft: false
           prerelease: false
           files: sdk/bin/packages/*/base/*.ipk

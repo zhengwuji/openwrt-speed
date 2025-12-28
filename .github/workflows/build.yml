@@ -67,6 +67,70 @@ jobs:
             sdk/.config
           retention-days: 5
 
+      - name: Analyze Build Errors
+        if: failure()
+        run: |
+          echo "## 🔴 构建失败 - 错误分析" > error_summary.md
+          echo "" >> error_summary.md
+          echo "**构建编号**: #${{ github.run_number }}" >> error_summary.md
+          echo "**失败时间**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> error_summary.md
+          echo "**提交哈希**: $(git log -1 --pretty=%h)" >> error_summary.md
+          echo "" >> error_summary.md
+          
+          # 检查编译日志中的错误
+          if [ -d "sdk/logs" ]; then
+            echo "### 📋 编译错误详情" >> error_summary.md
+            echo "" >> error_summary.md
+            
+            # 提取错误信息
+            find sdk/logs -name "*.log" -type f | while read logfile; do
+              if grep -q "error:" "$logfile" || grep -q "Error" "$logfile"; then
+                echo "#### $(basename $logfile)" >> error_summary.md
+                echo '```' >> error_summary.md
+                grep -i "error" "$logfile" | head -20 >> error_summary.md
+                echo '```' >> error_summary.md
+                echo "" >> error_summary.md
+              fi
+            done
+          fi
+          
+          # 检查make输出中的错误
+          echo "### 🔍 常见错误类型" >> error_summary.md
+          echo "" >> error_summary.md
+          
+          # 检查依赖问题
+          if find sdk/logs -name "*.log" -exec grep -l "dependency" {} \; | head -1; then
+            echo "- ❌ **依赖问题**: 缺少必要的依赖包" >> error_summary.md
+          fi
+          
+          # 检查编译错误
+          if find sdk/logs -name "*.log" -exec grep -l "compilation terminated" {} \; | head -1; then
+            echo "- ❌ **编译错误**: 代码编译失败" >> error_summary.md
+          fi
+          
+          # 检查链接错误
+          if find sdk/logs -name "*.log" -exec grep -l "undefined reference" {} \; | head -1; then
+            echo "- ❌ **链接错误**: 符号未定义" >> error_summary.md
+          fi
+          
+          echo "" >> error_summary.md
+          echo "### 📁 完整日志" >> error_summary.md
+          echo "完整的构建日志已上传到 Artifacts，请下载 \`build-logs\` 查看详细信息。" >> error_summary.md
+          
+          # 显示错误摘要
+          cat error_summary.md
+          
+          # 保存到GitHub Step Summary
+          cat error_summary.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Error Summary
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-summary
+          path: error_summary.md
+          retention-days: 30
+
       - name: Generate Release Notes
         id: release_notes
         run: |
